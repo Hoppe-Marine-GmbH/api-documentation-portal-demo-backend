@@ -1,0 +1,89 @@
+service: simple-api
+provider:
+  name: aws
+  region: eu-west-1
+
+plugins:
+  - serverless-export-swagger
+  - '@brettstack/serverless-amplify-plugin'
+
+package:
+  exclude:
+    - ./**
+  include:
+    - LICENSE
+
+functions:
+  simple-api:
+    handler: handler.simple-api
+    description: return some mocked example data
+    events:
+      - http:
+          path: simple-api
+          cors: true
+          method: get
+          integration: mock
+          request:
+            template:
+              application/json: '{"statusCode": 200}'
+          response:
+            template: '{ "foo" : "$input.params(''bar'')" }'
+            statusCodes:
+              200:
+                pattern: ''
+
+resources:
+  Resources:
+    S3Assets:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.swaggerHostingBucketName}
+    S3AssetsBucketAllowPublicReadPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref S3Assets
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Action:
+                - "s3:GetObject"
+              Resource:
+                - !Join ["", ["arn:aws:s3:::", !Ref S3Assets, "/*" ] ]
+              Principal: "*"
+
+custom:
+  swaggerHostingBucketName: ${self:service}-${self:provider.stage}-assets
+  swaggerHostingKey: 'swagger/simple-api.json'
+  swaggerDestinations:
+    s3BucketName: ${self:custom.swaggerHostingBucketName}
+    s3KeyName: ${self:custom.swaggerHostingKey}
+    acl: public-read
+  amplify:
+    repository: https://github.com/Hoppe-Marine-GmbH/api-documentation-portal-demo-frontend
+    branch: master
+    accessTokenSecretName: AmplifyGithub
+    buildSpec: |-
+      version: 1
+      frontend:
+        phases:
+          preBuild:
+            commands:
+              - nvm use $VERSION_NODE_12
+              - yarn install
+          build:
+            commands:
+              - nvm use $VERSION_NODE_12
+              - yarn build
+              - echo "REACT_APP_SWAGGER_URL=https://${self:custom.swaggerHostingBucketName}.s3.amazonaws.com/${self:custom.swaggerHostingKey}" >> ./.env 
+        artifacts:
+          baseDirectory: build
+          files:
+            - '**/*'
+        cache:
+          paths:
+            - node_modules/**/*
+
+outputs:
+  swaggerUrl:
+    name: 'https://${self:custom.swaggerHostingBucketName}.s3.amazonaws.com/${self:custom.swaggerHostingKey}'

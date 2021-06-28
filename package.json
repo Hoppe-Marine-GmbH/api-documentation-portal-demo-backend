@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@brettstack/serverless-amplify-plugin": "^1.8.2",
+    "serverless": "^2.48.0",
+    "serverless-export-swagger": "^2.0.0"
+  },
+  "devDependencies": {}
+}
