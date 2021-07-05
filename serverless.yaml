@@ -5,7 +5,7 @@ provider:
 
 plugins:
   - serverless-export-swagger
-  - '@brettstack/serverless-amplify-plugin'
+  - "@brettstack/serverless-amplify-plugin"
 
 package:
   exclude:
@@ -30,7 +30,7 @@ functions:
             template: '{ "foo" : "$input.params(''bar'')" }'
             statusCodes:
               200:
-                pattern: ''
+                pattern: ""
 
 resources:
   Resources:
@@ -38,6 +38,25 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:custom.swaggerHostingBucketName}
+        AccessControl: PublicRead
+        CorsConfiguration:
+          CorsRules:
+            - AllowedHeaders:
+                - "*"
+              AllowedMethods:
+                - GET
+              AllowedOrigins:
+                - "*"
+              ExposedHeaders:
+                - Content-Type
+                - Authorization
+                - Content-Range
+                - Accept
+                - Content-Type
+                - Origin
+                - Range
+              Id: myCORSRuleId1
+              MaxAge: 3600
     S3AssetsBucketAllowPublicReadPolicy:
       Type: AWS::S3::BucketPolicy
       Properties:
@@ -54,7 +73,7 @@ resources:
 
 custom:
   swaggerHostingBucketName: ${self:service}-${self:provider.stage}-assets
-  swaggerHostingKey: 'swagger/simple-api.json'
+  swaggerHostingKey: "swagger/simple-api.json"
   swaggerDestinations:
     s3BucketName: ${self:custom.swaggerHostingBucketName}
     s3KeyName: ${self:custom.swaggerHostingKey}
@@ -73,17 +92,17 @@ custom:
               - yarn install
           build:
             commands:
+              - echo "REACT_APP_SWAGGER_URL=https://${self:custom.swaggerHostingBucketName}.s3.amazonaws.com/${self:custom.swaggerHostingKey}" >> ./.env
               - nvm use $VERSION_NODE_12
               - yarn build
-              - echo "REACT_APP_SWAGGER_URL=https://${self:custom.swaggerHostingBucketName}.s3.amazonaws.com/${self:custom.swaggerHostingKey}" >> ./.env 
         artifacts:
           baseDirectory: build
           files:
-            - '**/*'
+            - "**/*"
         cache:
           paths:
             - node_modules/**/*
 
 outputs:
   swaggerUrl:
-    name: 'https://${self:custom.swaggerHostingBucketName}.s3.amazonaws.com/${self:custom.swaggerHostingKey}'
+    name: "https://${self:custom.swaggerHostingBucketName}.s3.amazonaws.com/${self:custom.swaggerHostingKey}"
